@@ -18,25 +18,27 @@
     t.assertEqual(r.complete, true, '6 of 6 picked');
   });
 
-  t.suite('standings: all draws -> 4-way tie', function () {
+  t.suite('standings: all draws -> 4-way tie, ranked uses input order by default', function () {
     var teams = ['a', 'b', 'c', 'd'];
     var matches = {};
     ['a-b','a-c','a-d','b-c','b-d','c-d'].forEach(function (k) { matches[k] = 'draw'; });
     var r = compute(teams, matches, null);
     t.assertEqual(r.tiedClusters, [['a','b','c','d']], '4-way tie at 3 pts');
-    t.assertEqual(r.ranked, null, 'no ranking until manual');
+    t.assertEqual(r.ranked, ['a','b','c','d'], 'default ranking = input team order');
   });
 
-  t.suite('standings: 4-way tie resolved by manualRanking', function () {
+  t.suite('standings: 4-way tie ordered by manualRanking', function () {
     var teams = ['a', 'b', 'c', 'd'];
     var matches = {};
     ['a-b','a-c','a-d','b-c','b-d','c-d'].forEach(function (k) { matches[k] = 'draw'; });
     var r = compute(teams, matches, ['c','a','d','b']);
     t.assertEqual(r.ranked, ['c','a','d','b'], 'manualRanking applied');
-    t.assertEqual(r.tiedClusters, [], 'cluster resolved');
+    // The cluster is still reported (teams ARE tied on points), but ranked
+    // already places them in the user's chosen order.
+    t.assertEqual(r.tiedClusters, [['a','b','c','d']], 'tie still detected');
   });
 
-  t.suite('standings: 2-way tie at top', function () {
+  t.suite('standings: 2-way tie at top resolved to input order by default', function () {
     var teams = ['a', 'b', 'c', 'd'];
     var matches = {};
     matches[key('a','b')] = 'draw';
@@ -47,7 +49,7 @@
     matches[key('c','d')] = 'c';
     var r = compute(teams, matches, null);
     t.assertEqual(r.tiedClusters, [['a','b']], 'a and b tied at 7');
-    t.assertEqual(r.ranked, null, 'awaiting manual rank');
+    t.assertEqual(r.ranked, ['a','b','c','d'], 'a before b (input order) by default');
   });
 
   t.suite('standings: incomplete (missing matches)', function () {

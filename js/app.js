@@ -159,7 +159,7 @@ MUNDIAL.app = (function () {
 
     var children = [el('table', { class: 'standings' }, [thead, el('tbody', null, rows)])];
     if (s.tiedClusters.length > 0) {
-      children.push(el('p', { class: 'tie-note' }, ['Tie detected — set the order below to continue.']));
+      children.push(el('p', { class: 'tie-note' }, ['Teams tied on points — you can swap their order below if you want.']));
     }
     return el('div', { class: 'standings-wrap' }, children);
   }
@@ -169,18 +169,9 @@ MUNDIAL.app = (function () {
   function renderTiebreaker(group, s, teams) {
     if (s.tiedClusters.length === 0) return null;
 
-    // Display order is the same as the standings: points-first, with any saved
-    // manualRanking applied only within tied clusters.
-    var manualRanking = current.groupResults[group].manualRanking;
-    var manualIdx = {};
-    if (manualRanking) manualRanking.forEach(function (t, i) { manualIdx[t] = i; });
-    var ordered = teams.slice().sort(function (a, b) {
-      if (s.points[a] !== s.points[b]) return s.points[b] - s.points[a];
-      var ai = manualIdx[a] === undefined ? 99 : manualIdx[a];
-      var bi = manualIdx[b] === undefined ? 99 : manualIdx[b];
-      if (ai !== bi) return ai - bi;
-      return a < b ? -1 : 1;
-    });
+    // Use the same order the standings table shows — they must agree, otherwise
+    // the kid sees one position in the table and a different one in the widget.
+    var ordered = s.ranked.slice();
 
     // Only swaps WITHIN a tied cluster are allowed — a higher-points team must
     // never end up below a lower-points team.
@@ -201,7 +192,7 @@ MUNDIAL.app = (function () {
     }
 
     return el('div', { class: 'tiebreaker' }, [
-      el('p', { class: 'tiebreaker-h' }, ['Order the tied teams (only teams with the same points can be swapped):']),
+      el('p', { class: 'tiebreaker-h' }, ['Tied on points — swap if you want (only same-points teams can move):']),
       el('ol', { class: 'tiebreaker-list' }, ordered.map(function (t, idx) {
         var canUp = idx > 0 && inSameCluster(t, ordered[idx - 1]);
         var canDown = idx < ordered.length - 1 && inSameCluster(t, ordered[idx + 1]);

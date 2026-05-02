@@ -37,24 +37,25 @@ MUNDIAL.standings = (function () {
       i = j;
     }
 
-    if (clusters.length === 0) {
-      return { ranked: sorted, tiedClusters: [], complete: complete, points: points };
-    }
+    // Always produce a valid ranking. When teams tie on points, the default
+    // order is the team's index in the input `teams` array (which is the
+    // group's draw order). The user can override within tied clusters via
+    // manualRanking; cross-cluster moves are silently ignored — points
+    // always dominate so a higher-points team can't be demoted.
+    var manualIdx = {};
     if (manualRanking && manualRanking.length === 4) {
-      // Sort by points first; manualRanking only resolves order within tied clusters.
-      // Guarantees a higher-points team can never end up below a lower-points team,
-      // even if a stale manualRanking from before the points changed says otherwise.
-      var manualIdx = {};
       manualRanking.forEach(function (t, i) { manualIdx[t] = i; });
-      var resolved = teams.slice().sort(function (a, b) {
-        if (points[a] !== points[b]) return points[b] - points[a];
-        var ai = manualIdx[a] === undefined ? 99 : manualIdx[a];
-        var bi = manualIdx[b] === undefined ? 99 : manualIdx[b];
-        return ai - bi;
-      });
-      return { ranked: resolved, tiedClusters: [], complete: complete, points: points };
     }
-    return { ranked: null, tiedClusters: clusters, complete: complete, points: points };
+    var teamIdx = {};
+    teams.forEach(function (t, i) { teamIdx[t] = i; });
+    var ranked = teams.slice().sort(function (a, b) {
+      if (points[a] !== points[b]) return points[b] - points[a];
+      var ai = manualIdx[a] !== undefined ? manualIdx[a] : null;
+      var bi = manualIdx[b] !== undefined ? manualIdx[b] : null;
+      if (ai !== null && bi !== null && ai !== bi) return ai - bi;
+      return teamIdx[a] - teamIdx[b];
+    });
+    return { ranked: ranked, tiedClusters: clusters, complete: complete, points: points };
   }
 
   return { computeGroup: computeGroup };

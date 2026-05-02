@@ -157,17 +157,20 @@ MUNDIAL.app = (function () {
       ]);
     });
 
-    var children = [el('table', { class: 'standings' }, [thead, el('tbody', null, rows)])];
-    if (s.tiedClusters.length > 0) {
-      children.push(el('p', { class: 'tie-note' }, ['Teams tied on points — you can swap their order below if you want.']));
-    }
-    return el('div', { class: 'standings-wrap' }, children);
+    // The tiebreaker widget below already explains what to do for ties — no
+    // need for a duplicate notice above the table.
+    return el('div', { class: 'standings-wrap' }, [
+      el('table', { class: 'standings' }, [thead, el('tbody', null, rows)])
+    ]);
   }
 
   // ----- TIEBREAKER WIDGET -----
 
   function renderTiebreaker(group, s, teams) {
-    if (s.tiedClusters.length === 0) return null;
+    // Hide the widget until all 6 group matches are picked AND there's an
+    // actual tie to break. Showing it earlier (e.g. when nothing is picked yet
+    // and all teams are 0-0-0) is just noise.
+    if (!s.complete || s.tiedClusters.length === 0) return null;
 
     // Use the same order the standings table shows — they must agree, otherwise
     // the kid sees one position in the table and a different one in the widget.
@@ -192,7 +195,10 @@ MUNDIAL.app = (function () {
     }
 
     return el('div', { class: 'tiebreaker' }, [
-      el('p', { class: 'tiebreaker-h' }, ['Tied on points — swap if you want (only same-points teams can move):']),
+      el('p', { class: 'tiebreaker-h' }, [
+        'Teams tied on points. The order shown is fine — you can continue. ',
+        'Tap ↑↓ only if you want to swap teams that have the same points.'
+      ]),
       el('ol', { class: 'tiebreaker-list' }, ordered.map(function (t, idx) {
         var canUp = idx > 0 && inSameCluster(t, ordered[idx - 1]);
         var canDown = idx < ordered.length - 1 && inSameCluster(t, ordered[idx + 1]);

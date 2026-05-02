@@ -391,6 +391,36 @@ MUNDIAL.app = (function () {
     if (c) clear(c);
   }
 
+  // Drop a saved pick if the team isn't actually in the current match anymore
+  // (can happen when bracket logic changes — e.g. third-place reassignment).
+  // Returns true if anything was pruned (caller can clear downstream).
+  function prunePicksForRound(matches, picks) {
+    var pruned = false;
+    matches.forEach(function (m) {
+      var p = picks[m.id];
+      if (p && p !== m.teamA && p !== m.teamB) {
+        delete picks[m.id];
+        pruned = true;
+      }
+    });
+    return pruned;
+  }
+
+  function pruneFinalPicks(finalMatch, thirdMatch) {
+    var pruned = false;
+    var f = current.knockout.final.final;
+    if (f && finalMatch && f !== finalMatch.teamA && f !== finalMatch.teamB) {
+      current.knockout.final.final = null;
+      pruned = true;
+    }
+    var th = current.knockout.final.third;
+    if (th && thirdMatch && th !== thirdMatch.teamA && th !== thirdMatch.teamB) {
+      current.knockout.final.third = null;
+      pruned = true;
+    }
+    return pruned;
+  }
+
   function renderKnockouts(info) {
     var thirdsOk = info.allComplete && current.thirdPlaceAdvancing.length === 8;
 
@@ -404,42 +434,75 @@ MUNDIAL.app = (function () {
     }
     r32Section.classList.remove('locked');
     var r32 = MUNDIAL.bracket.buildR32(info.rankings, current.thirdPlaceAdvancing);
+    // Prune any R32 picks whose team is no longer in the corresponding match
+    // (e.g. after the third-place assignment was recomputed). When pruning
+    // happens, also clear all downstream rounds that depended on the orphan.
+    var anyPruned = false;
+    if (prunePicksForRound(r32, current.knockout.r32)) {
+      current.knockout.r16 = {};
+      current.knockout.qf = {};
+      current.knockout.sf = {};
+      current.knockout.final = { final: null, third: null };
+      anyPruned = true;
+    }
     r32.forEach(function (m) { r32Container.appendChild(renderKnockoutMatch(m, 'r32')); });
 
     if (!roundDone(r32, current.knockout.r32)) {
       ['r16','qf','sf','final'].forEach(lockSection);
+      if (anyPruned) state.save(current);
       return;
     }
     var r16 = MUNDIAL.bracket.advance('r16', { r32: current.knockout.r32 });
+    if (prunePicksForRound(r16, current.knockout.r16)) {
+      current.knockout.qf = {};
+      current.knockout.sf = {};
+      current.knockout.final = { final: null, third: null };
+      anyPruned = true;
+    }
     if (!renderRound('r16', 'r16', 'r16-container', r16)) {
       ['qf','sf','final'].forEach(lockSection);
+      if (anyPruned) state.save(current);
       return;
     }
 
     if (!roundDone(r16, current.knockout.r16)) {
       ['qf','sf','final'].forEach(lockSection);
+      if (anyPruned) state.save(current);
       return;
     }
     var qf = MUNDIAL.bracket.advance('qf', { r32: current.knockout.r32, r16: current.knockout.r16 });
+    if (prunePicksForRound(qf, current.knockout.qf)) {
+      current.knockout.sf = {};
+      current.knockout.final = { final: null, third: null };
+      anyPruned = true;
+    }
     if (!renderRound('qf', 'qf', 'qf-container', qf)) {
       ['sf','final'].forEach(lockSection);
+      if (anyPruned) state.save(current);
       return;
     }
 
     if (!roundDone(qf, current.knockout.qf)) {
       ['sf','final'].forEach(lockSection);
+      if (anyPruned) state.save(current);
       return;
     }
     var sf = MUNDIAL.bracket.advance('sf', {
       r32: current.knockout.r32, r16: current.knockout.r16, qf: current.knockout.qf
     });
+    if (prunePicksForRound(sf, current.knockout.sf)) {
+      current.knockout.final = { final: null, third: null };
+      anyPruned = true;
+    }
     if (!renderRound('sf', 'sf', 'sf-container', sf)) {
       lockSection('final');
+      if (anyPruned) state.save(current);
       return;
     }
 
     if (!roundDone(sf, current.knockout.sf)) {
       lockSection('final');
+      if (anyPruned) state.save(current);
       return;
     }
     var finalSection = document.getElementById('final');
@@ -452,9 +515,11 @@ MUNDIAL.app = (function () {
       qf: current.knockout.qf, sf: current.knockout.sf
     });
     var third = MUNDIAL.bracket.buildThirdPlace(sf, current.knockout.sf);
-    finalContainer.appendChild(renderKnockoutMatch(
-      { id: 'm103', teamA: third.teamA, teamB: third.teamB }, 'finalThird'
-    ));
+    var thirdMatch = { id: 'm103', teamA: third.teamA, teamB: third.teamB };
+    if (pruneFinalPicks(finalMatches[0], thirdMatch)) anyPruned = true;
+    if (anyPruned) state.save(current);
+
+    finalContainer.appendChild(renderKnockoutMatch(thirdMatch, 'finalThird'));
     finalContainer.appendChild(renderKnockoutMatch(finalMatches[0], 'finalFinal'));
   }
 

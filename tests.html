@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mundial 2026 — Tests</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 20px; background: #0a0e1a; color: #eee; }
+    #summary { font-size: 24px; font-weight: bold; }
+    #failures { color: #ff5252; }
+  </style>
+</head>
+<body>
+  <h1>Mundial 2026 — Tests</h1>
+  <p id="summary">running…</p>
+  <ul id="failures"></ul>
+  <script src="js/test-helper.js"></script>
+  <script src="js/dom.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/standings.js"></script>
+  <script src="js/bracket.js"></script>
+  <!-- additional test files added in later tasks -->
+  <script>
+    MUNDIAL.test.suite('harness', function () {
+      MUNDIAL.test.assert(true, 'true is true');
+      MUNDIAL.test.assertEqual(1 + 1, 2, '1+1=2');
+    });
+    MUNDIAL.test.summary();
+  </script>
+</body>
+</html>

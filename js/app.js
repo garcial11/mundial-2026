@@ -360,8 +360,13 @@ MUNDIAL.app = (function () {
       }, [flagImg(teamId), el('span', null, [teamLabel(teamId)])]);
     }
 
-    return el('article', { class: 'ko-match', dataset: { id: match.id } }, [
-      el('div', { class: 'ko-id' }, [match.id.toUpperCase()]),
+    var label = match.id.toUpperCase();
+    var labelClass = 'ko-id';
+    if (round === 'finalFinal') { label = 'FINAL'; labelClass = 'ko-id ko-id-final'; }
+    else if (round === 'finalThird') { label = '3RD PLACE MATCH'; labelClass = 'ko-id ko-id-third'; }
+
+    return el('article', { class: 'ko-match' + (round === 'finalFinal' ? ' ko-match-final' : ''), dataset: { id: match.id } }, [
+      el('div', { class: labelClass }, [label]),
       row(match.teamA),
       row(match.teamB)
     ]);

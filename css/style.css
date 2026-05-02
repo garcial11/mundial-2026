@@ -236,6 +236,9 @@ section.locked .lock-note { color: var(--text-dim); font-style: italic; }
   display: flex; flex-direction: column; gap: 6px;
 }
 .ko-id { font-size: 11px; color: var(--text-dim); letter-spacing: 0.1em; }
+.ko-id-final { font-size: 14px; color: var(--gold); font-weight: 800; letter-spacing: 0.2em; }
+.ko-id-third { font-size: 12px; color: var(--gold-hi); font-weight: 700; letter-spacing: 0.15em; }
+.ko-match-final { border-color: var(--gold); box-shadow: 0 0 0 1px rgba(212,160,23,0.3) inset; }
 .ko-row {
   display: flex; align-items: center; gap: 10px;
   background: transparent; border: 1px solid var(--border); color: var(--text);

@@ -7,7 +7,50 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <h1>Mundial 2026</h1>
+  <header class="hero">
+    <h1>MUNDIAL 2026</h1>
+    <p class="subtitle">YOUR BRACKET</p>
+    <button id="reset-btn" class="btn-secondary" type="button">Reset bracket</button>
+  </header>
+
+  <nav class="sticky-nav" aria-label="Sections">
+    <a href="#groups">Groups</a>
+    <a href="#thirds">3rd Place</a>
+    <a href="#r32">R32</a>
+    <a href="#r16">R16</a>
+    <a href="#qf">QF</a>
+    <a href="#sf">SF</a>
+    <a href="#final">Final</a>
+  </nav>
+
+  <main>
+    <section id="groups" aria-labelledby="groups-h">
+      <h2 id="groups-h">Groups</h2>
+      <div id="groups-container"></div>
+    </section>
+
+    <section id="thirds" aria-labelledby="thirds-h" class="locked">
+      <h2 id="thirds-h">Best Third-Place Teams</h2>
+      <p class="lock-note">Complete all groups to unlock.</p>
+      <div id="thirds-container"></div>
+    </section>
+
+    <section id="r32"   aria-labelledby="r32-h"   class="locked"><h2 id="r32-h">Round of 32</h2><div id="r32-container"></div></section>
+    <section id="r16"   aria-labelledby="r16-h"   class="locked"><h2 id="r16-h">Round of 16</h2><div id="r16-container"></div></section>
+    <section id="qf"    aria-labelledby="qf-h"    class="locked"><h2 id="qf-h">Quarterfinals</h2><div id="qf-container"></div></section>
+    <section id="sf"    aria-labelledby="sf-h"    class="locked"><h2 id="sf-h">Semifinals</h2><div id="sf-container"></div></section>
+    <section id="final" aria-labelledby="final-h" class="locked"><h2 id="final-h">Final &amp; 3rd Place</h2><div id="final-container"></div></section>
+
+    <section id="champion" hidden aria-labelledby="champion-h">
+      <h2 id="champion-h">Champion</h2>
+      <div id="champion-container"></div>
+    </section>
+  </main>
+
+  <div id="storage-warning" hidden class="banner">
+    Picks won't be saved — enable browser storage to persist your bracket.
+  </div>
+
   <script src="js/dom.js"></script>
   <script src="js/data.js"></script>
   <script src="js/state.js"></script>

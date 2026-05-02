@@ -192,7 +192,8 @@ section.locked .lock-note { color: var(--text-dim); font-style: italic; }
   background: transparent; border: 1px solid var(--border); color: var(--text);
   width: var(--tap); height: var(--tap); border-radius: 6px; cursor: pointer; font-size: 18px;
 }
-.tb-btn:hover { border-color: var(--gold); color: var(--gold); }
+.tb-btn:hover:not(.disabled) { border-color: var(--gold); color: var(--gold); }
+.tb-btn.disabled { opacity: 0.25; cursor: not-allowed; }
 
 /* ----- THIRD-PLACE ----- */
 

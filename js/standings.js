@@ -41,7 +41,18 @@ MUNDIAL.standings = (function () {
       return { ranked: sorted, tiedClusters: [], complete: complete, points: points };
     }
     if (manualRanking && manualRanking.length === 4) {
-      return { ranked: manualRanking.slice(), tiedClusters: [], complete: complete, points: points };
+      // Sort by points first; manualRanking only resolves order within tied clusters.
+      // Guarantees a higher-points team can never end up below a lower-points team,
+      // even if a stale manualRanking from before the points changed says otherwise.
+      var manualIdx = {};
+      manualRanking.forEach(function (t, i) { manualIdx[t] = i; });
+      var resolved = teams.slice().sort(function (a, b) {
+        if (points[a] !== points[b]) return points[b] - points[a];
+        var ai = manualIdx[a] === undefined ? 99 : manualIdx[a];
+        var bi = manualIdx[b] === undefined ? 99 : manualIdx[b];
+        return ai - bi;
+      });
+      return { ranked: resolved, tiedClusters: [], complete: complete, points: points };
     }
     return { ranked: null, tiedClusters: clusters, complete: complete, points: points };
   }

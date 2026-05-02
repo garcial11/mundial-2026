@@ -3,6 +3,7 @@ var MUNDIAL = MUNDIAL || {};
 MUNDIAL.bracket = (function () {
   function getData() { return MUNDIAL.data; }
 
+  // Resolve a non-third slot ('1A', '2B', etc.) to a team id.
   function resolveSlot(slot, groupRankings, thirdsByGroup) {
     if (slot[0] === '1' || slot[0] === '2') {
       var pos = slot[0] === '1' ? 0 : 1;
@@ -11,6 +12,9 @@ MUNDIAL.bracket = (function () {
       return ranking ? ranking[pos] : null;
     }
     if (slot.indexOf('3rd-of-') === 0) {
+      // Legacy single-slot resolution — returns the first matching group.
+      // Kept for the exported API; buildR32 uses assignThirds instead so
+      // each advancing third-place team is assigned to exactly one slot.
       var groups = slot.slice('3rd-of-'.length).split('');
       for (var i = 0; i < groups.length; i++) {
         if (thirdsByGroup[groups[i]]) return thirdsByGroup[groups[i]];
@@ -18,6 +22,30 @@ MUNDIAL.bracket = (function () {
       return null;
     }
     return null;
+  }
+
+  // Backtracking solver: assign each '3rd-of-XYZ' slot to a unique advancing
+  // third-place group such that the group's letter is in the slot's allowed set.
+  // Returns { slotIdx -> groupLetter } or null if no valid assignment exists.
+  function assignThirds(thirdSlots, thirdsByGroup) {
+    function solve(idx, used) {
+      if (idx >= thirdSlots.length) return {};
+      var allowed = thirdSlots[idx].allowed;
+      for (var i = 0; i < allowed.length; i++) {
+        var g = allowed[i];
+        if (thirdsByGroup[g] && !used[g]) {
+          used[g] = true;
+          var rest = solve(idx + 1, used);
+          if (rest !== null) {
+            rest[idx] = g;
+            return rest;
+          }
+          used[g] = false;
+        }
+      }
+      return null;
+    }
+    return solve(0, {});
   }
 
   function buildR32(groupRankings, thirdPlaceAdvancing) {
@@ -29,11 +57,38 @@ MUNDIAL.bracket = (function () {
       }
     });
 
-    return getData().R32_PAIRINGS.map(function (p) {
+    var pairings = getData().R32_PAIRINGS;
+
+    // Collect all '3rd-of-*' slots, in pairing/side order.
+    var thirdSlots = [];
+    var slotIdxByPos = {}; // 'matchIdx-side' -> slotIdx
+    pairings.forEach(function (p, mi) {
+      ['A','B'].forEach(function (side) {
+        var slot = side === 'A' ? p.slotA : p.slotB;
+        if (slot.indexOf('3rd-of-') === 0) {
+          slotIdxByPos[mi + '-' + side] = thirdSlots.length;
+          thirdSlots.push({ allowed: slot.slice('3rd-of-'.length).split('') });
+        }
+      });
+    });
+
+    var assignment = assignThirds(thirdSlots, thirdsByGroup);
+
+    function teamForSlot(slot, mi, side) {
+      if (slot.indexOf('3rd-of-') === 0) {
+        if (!assignment) return null;
+        var slotIdx = slotIdxByPos[mi + '-' + side];
+        var grp = assignment[slotIdx];
+        return grp ? thirdsByGroup[grp] : null;
+      }
+      return resolveSlot(slot, groupRankings, thirdsByGroup);
+    }
+
+    return pairings.map(function (p, mi) {
       return {
         id: p.id,
-        teamA: resolveSlot(p.slotA, groupRankings, thirdsByGroup),
-        teamB: resolveSlot(p.slotB, groupRankings, thirdsByGroup)
+        teamA: teamForSlot(p.slotA, mi, 'A'),
+        teamB: teamForSlot(p.slotB, mi, 'B')
       };
     });
   }

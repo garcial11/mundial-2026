@@ -33,6 +33,25 @@
     t.assertEqual([m89.teamA, m89.teamB], ['X1','X2'], 'm89 = winners of m73 + m74');
   });
 
+  t.suite('bracket: every R32 match has distinct teams (no duplicates across slots)', function () {
+    var rankings = {};
+    ['A','B','C','D','E','F','G','H','I','J','K','L'].forEach(function (g) {
+      rankings[g] = [g + '1', g + '2', g + '3', g + '4'];
+    });
+    // Pick 8 thirds from a non-trivial mix to exercise the assignment solver
+    var thirds = ['A3','B3','D3','E3','F3','H3','I3','J3'];
+    var r32 = B.buildR32(rankings, thirds);
+    var teams = [];
+    r32.forEach(function (m) { teams.push(m.teamA); teams.push(m.teamB); });
+    var unique = {};
+    teams.forEach(function (t) { unique[t] = (unique[t] || 0) + 1; });
+    var dupes = Object.keys(unique).filter(function (t) { return unique[t] > 1; });
+    t.assertEqual(dupes, [], 'no team appears more than once');
+    var nulls = teams.filter(function (t) { return !t; });
+    t.assertEqual(nulls.length, 0, 'every slot resolved to a real team');
+    t.assertEqual(teams.length, 32, '32 teams across 16 R32 matches');
+  });
+
   t.suite('bracket: third-place match uses LOSERS of semifinals', function () {
     var sfMatches = [
       { id: 'm101', teamA: 'A', teamB: 'C' },

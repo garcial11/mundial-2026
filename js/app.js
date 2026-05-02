@@ -68,8 +68,10 @@ MUNDIAL.app = (function () {
     else current.knockout[round][matchId] = value;
   }
 
+  // Returns a cascade target round, or null if the round has no downstream
+  // (finalFinal and finalThird are terminal — no later picks depend on them).
   function cascadeKey(round) {
-    if (round === 'finalFinal' || round === 'finalThird') return 'sf';
+    if (round === 'finalFinal' || round === 'finalThird') return null;
     return round;
   }
 
@@ -166,17 +168,32 @@ MUNDIAL.app = (function () {
 
   function renderTiebreaker(group, s, teams) {
     if (s.tiedClusters.length === 0) return null;
-    var ordered = (current.groupResults[group].manualRanking || teams.slice().sort(function (a, b) {
-      var dp = s.points[b] - s.points[a];
-      if (dp !== 0) return dp;
+
+    // Display order is the same as the standings: points-first, with any saved
+    // manualRanking applied only within tied clusters.
+    var manualRanking = current.groupResults[group].manualRanking;
+    var manualIdx = {};
+    if (manualRanking) manualRanking.forEach(function (t, i) { manualIdx[t] = i; });
+    var ordered = teams.slice().sort(function (a, b) {
+      if (s.points[a] !== s.points[b]) return s.points[b] - s.points[a];
+      var ai = manualIdx[a] === undefined ? 99 : manualIdx[a];
+      var bi = manualIdx[b] === undefined ? 99 : manualIdx[b];
+      if (ai !== bi) return ai - bi;
       return a < b ? -1 : 1;
-    })).slice();
+    });
+
+    // Only swaps WITHIN a tied cluster are allowed — a higher-points team must
+    // never end up below a lower-points team.
+    function inSameCluster(a, b) {
+      return s.points[a] === s.points[b];
+    }
 
     function move(idx, dir) {
       var next = idx + dir;
       if (next < 0 || next >= ordered.length) return;
-      var tmp = ordered[idx]; ordered[idx] = ordered[next]; ordered[next] = tmp;
+      if (!inSameCluster(ordered[idx], ordered[next])) return;
       if (!confirmIfDownstream('groups')) return;
+      var tmp = ordered[idx]; ordered[idx] = ordered[next]; ordered[next] = tmp;
       current.groupResults[group].manualRanking = ordered.slice();
       clearAllAfter('groups');
       state.save(current);
@@ -184,20 +201,24 @@ MUNDIAL.app = (function () {
     }
 
     return el('div', { class: 'tiebreaker' }, [
-      el('p', { class: 'tiebreaker-h' }, ['Order the teams:']),
+      el('p', { class: 'tiebreaker-h' }, ['Order the tied teams (only teams with the same points can be swapped):']),
       el('ol', { class: 'tiebreaker-list' }, ordered.map(function (t, idx) {
+        var canUp = idx > 0 && inSameCluster(t, ordered[idx - 1]);
+        var canDown = idx < ordered.length - 1 && inSameCluster(t, ordered[idx + 1]);
         return el('li', null, [
           flagImg(t),
           el('span', { class: 'tiebreaker-name' }, [teamLabel(t) + ' (' + s.points[t] + ' pts)']),
           el('button', {
             type: 'button',
-            class: 'tb-btn',
+            class: 'tb-btn' + (canUp ? '' : ' disabled'),
+            disabled: canUp ? null : true,
             'aria-label': 'Move ' + teamLabel(t) + ' up',
             on: { click: function () { move(idx, -1); } }
           }, ['↑']),
           el('button', {
             type: 'button',
-            class: 'tb-btn',
+            class: 'tb-btn' + (canDown ? '' : ' disabled'),
+            disabled: canDown ? null : true,
             'aria-label': 'Move ' + teamLabel(t) + ' down',
             on: { click: function () { move(idx, 1); } }
           }, ['↓'])
@@ -331,9 +352,10 @@ MUNDIAL.app = (function () {
           click: function () {
             var next = (picked === teamId) ? null : teamId;
             if (next === picked) return;
-            if (!confirmIfDownstream(cascadeKey(round))) return;
+            var cascade = cascadeKey(round);
+            if (cascade && !confirmIfDownstream(cascade)) return;
             setKnockoutPick(round, match.id, next);
-            clearAllAfter(cascadeKey(round));
+            if (cascade) clearAllAfter(cascade);
             state.save(current);
             renderAll();
           }

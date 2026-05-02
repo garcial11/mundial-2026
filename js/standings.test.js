@@ -57,4 +57,22 @@
     var r = compute(teams, matches, null);
     t.assertEqual(r.complete, false, 'not complete');
   });
+
+  t.suite('standings: stale manualRanking cannot demote a higher-points team', function () {
+    // a sweeps (9 pts), b/c/d tied at 0. A stale manualRanking left over from
+    // before the sweep claims [c, a, d, b] — the new logic must put a back at #1.
+    var teams = ['a', 'b', 'c', 'd'];
+    var matches = {};
+    matches[key('a','b')] = 'a';
+    matches[key('a','c')] = 'a';
+    matches[key('a','d')] = 'a';
+    matches[key('b','c')] = 'draw';
+    matches[key('b','d')] = 'draw';
+    matches[key('c','d')] = 'draw';
+    // points: a=9, b=2, c=2, d=2; tied cluster = [b, c, d]
+    var r = compute(teams, matches, ['c', 'a', 'd', 'b']);
+    t.assertEqual(r.ranked[0], 'a', 'a is #1 despite stale manualRanking');
+    // within-cluster order honours manualRanking among b/c/d: c < d < b
+    t.assertEqual(r.ranked.slice(1), ['c', 'd', 'b'], 'tied cluster respects manual order');
+  });
 })();

@@ -352,10 +352,11 @@ function buildLeaderboard(ss) {
     .setFontWeight('bold').setBackground('#0a0e1a').setFontColor('#d4a017');
 
   var lastCol = colNum2A1(MAX_PARTICIPANTS + 1);
-  // Read row 1 (player names) and row 11 (totals) from Scoring; sort desc.
+  // After TRANSPOSE(B1:lastCol11), the original ROW becomes a column.
+  // Col1 = original row 1 (player names), Col11 = original row 11 (TOTAL).
   var formula = '=IFERROR(QUERY(' +
     'TRANSPOSE(Scoring!B1:' + lastCol + '11),' +
-    '"select Col1, Col10 where Col1 is not null and Col1 <> \'\' order by Col10 desc",' +
+    '"select Col1, Col11 where Col1 is not null and Col1 <> \'\' order by Col11 desc",' +
     '0), "")';
   sh.getRange(2, 1).setFormula(formula);
 

@@ -67,10 +67,14 @@ MUNDIAL.export = (function () {
       });
     });
 
-    // Best third-place advancing — 8 slots in user-pick order.
+    // Best third-place advancing — 8 entries, sorted alphabetically by name so
+    // the rows are deterministic and can be set-compared in the Google Sheet.
+    var thirdsSorted = state.thirdPlaceAdvancing.slice().sort(function (a, b) {
+      var an = teamName(a), bn = teamName(b);
+      return an < bn ? -1 : an > bn ? 1 : 0;
+    });
     for (var k = 0; k < 8; k++) {
-      var t = state.thirdPlaceAdvancing[k];
-      rows.push(['Best 3rd place advancing — slot ' + (k + 1), teamName(t)]);
+      rows.push(['My 3rd place advancing', teamName(thirdsSorted[k])]);
     }
 
     // Knockout rounds.
@@ -150,6 +154,57 @@ MUNDIAL.export = (function () {
     ]);
 
     rows.push(['CHAMPION', teamName(state.knockout.final.final)]);
+
+    // ---------- Team-advancement rows (used by the Google Sheet for scoring) ----------
+    // These are flat lists of teams the user expects to reach each round, so the
+    // sheet can score by "team made it to round X" rather than by exact match
+    // outcomes (the user's bracket fixture won't match the real one).
+
+    function teamsInRound(round) {
+      var picks = state.knockout[round] || {};
+      // Walk match IDs in the chain order so output is deterministic. R32 lives
+      // in R32_PAIRINGS, not KNOCKOUT_CHAIN — handle that case explicitly.
+      var order = (round === 'r32') ? data.R32_PAIRINGS : (data.KNOCKOUT_CHAIN[round] || []);
+      return order.map(function (m) { return picks[m.id]; }).filter(Boolean);
+    }
+
+    // R32 = top 2 of every group (24 teams) + the 8 advancing 3rd-place teams.
+    var r32List = [];
+    Object.keys(data.GROUPS).forEach(function (g) {
+      var teams = data.GROUPS[g];
+      var gr = state.groupResults[g];
+      var s = standings.computeGroup(teams, gr.matches, gr.manualRanking);
+      if (s.ranked) {
+        if (s.ranked[0]) r32List.push(s.ranked[0]);
+        if (s.ranked[1]) r32List.push(s.ranked[1]);
+      }
+    });
+    state.thirdPlaceAdvancing.forEach(function (t) { if (t) r32List.push(t); });
+
+    var r16List = teamsInRound('r32');                // winners of R32 = R16 teams
+    var qfList  = teamsInRound('r16');                // winners of R16 = QF teams
+    var sfList  = teamsInRound('qf');                 // winners of QF  = SF teams
+    var finList = teamsInRound('sf');                 // winners of SF  = finalists
+
+    // Sort each list alphabetically by display name so spreadsheet diffs are stable.
+    function byName(a, b) {
+      var an = teamName(a), bn = teamName(b);
+      return an < bn ? -1 : an > bn ? 1 : 0;
+    }
+    [r32List, r16List, qfList, sfList, finList].forEach(function (list) { list.sort(byName); });
+
+    function pushTeamRows(label, list) {
+      list.forEach(function (id) { rows.push([label, teamName(id)]); });
+    }
+
+    pushTeamRows('My R32 team', r32List);
+    pushTeamRows('My R16 team', r16List);
+    pushTeamRows('My QF team',  qfList);
+    pushTeamRows('My SF team',  sfList);
+    pushTeamRows('My Finalist', finList);
+    if (state.knockout.final.final) {
+      rows.push(['My Champion', teamName(state.knockout.final.final)]);
+    }
 
     return rows;
   }

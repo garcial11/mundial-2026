@@ -106,6 +106,8 @@ MUNDIAL.app = (function () {
     }
 
     return el('div', { class: 'match' }, [
+      // Print-only label so the PDF shows which match each pick is for.
+      el('div', { class: 'match-context print-only' }, [teamLabel(teamA) + ' vs ' + teamLabel(teamB)]),
       row(teamA, teamLabel(teamA) + ' wins', teamA),
       row('draw', 'Draw', null),
       row(teamB, teamLabel(teamB) + ' wins', teamB)

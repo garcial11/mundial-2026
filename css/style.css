@@ -375,6 +375,13 @@ section.locked .lock-note { color: var(--text-dim); font-style: italic; }
   .match-row.selected .flag { display: none !important; }
   .match-row.selected .match-row-label { color: #111 !important; }
 
+  .match-context {
+    font-size: 8px !important;
+    color: #666 !important;
+    padding: 2px 4px 0 !important;
+    line-height: 1.2 !important;
+  }
+
   .standings { font-size: 9px !important; margin-top: 4px !important; }
   .standings th, .standings td {
     padding: 1px 2px !important; border-bottom: 1px solid #ccc !important;

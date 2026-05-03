@@ -94,6 +94,25 @@ section.locked .lock-note { color: var(--text-dim); font-style: italic; }
 }
 .btn-secondary:hover { border-color: var(--gold); color: var(--gold); }
 
+.hero-controls {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  justify-content: center; align-items: center;
+}
+.name-input {
+  background: var(--bg-card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  min-height: var(--tap);
+  width: min(220px, 90vw);
+}
+.name-input::placeholder { color: var(--text-dim); }
+.name-input:focus { outline: 2px solid var(--gold); outline-offset: 1px; border-color: var(--gold); }
+
+.print-only { display: none; }
+
 .banner {
   position: fixed;
   bottom: 16px; left: 16px; right: 16px;
@@ -267,3 +286,156 @@ section.locked .lock-note { color: var(--text-dim); font-style: italic; }
   color: var(--gold-hi); font-weight: 800; letter-spacing: 0.05em;
 }
 .champion-tag { color: var(--text-dim); letter-spacing: 0.2em; font-size: 12px; }
+
+/* ======================== PRINT STYLES (PDF EXPORT) ======================== */
+@media print {
+  @page { size: A4; margin: 12mm; }
+
+  html, body { background: #fff !important; color: #111 !important; }
+  body { font-size: 11px; }
+
+  .print-only { display: block !important; }
+
+  /* Hide everything that doesn't make sense on paper */
+  .sticky-nav,
+  .hero-controls,
+  #reset-btn,
+  #download-csv-btn,
+  #download-pdf-btn,
+  .name-input,
+  .tiebreaker,
+  .lock-note,
+  .banner,
+  section.locked { display: none !important; }
+
+  .hero { display: none !important; }
+
+  .print-stamp {
+    border-bottom: 2px solid #111;
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+  }
+  .print-stamp-title { font-size: 18px; font-weight: 800; letter-spacing: 0.08em; color: #111; }
+  .print-stamp-meta { font-size: 11px; color: #555; margin-top: 2px; }
+
+  main { padding: 0 !important; max-width: none !important; }
+
+  section { margin-bottom: 10px !important; page-break-inside: avoid; opacity: 1 !important; }
+  section h2 {
+    color: #111 !important;
+    border-bottom: 1px solid #111 !important;
+    font-size: 13px !important;
+    margin: 6px 0 4px !important;
+    padding-bottom: 2px !important;
+    letter-spacing: 0.05em;
+  }
+
+  /* Group cards: 4 columns on print, compact */
+  #groups-container {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6px !important;
+  }
+  .group-card {
+    background: #fff !important;
+    border: 1px solid #999 !important;
+    padding: 4px 6px !important;
+    page-break-inside: avoid;
+  }
+  .group-card h3 {
+    color: #111 !important; font-size: 11px !important; margin: 0 0 2px !important;
+  }
+  .team-list { display: none !important; }
+
+  /* Match picks: show only the selected option as a compact one-liner */
+  .matches {
+    display: block !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 0 4px !important;
+  }
+  .match {
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    gap: 0 !important;
+  }
+  .match-row { display: none !important; }
+  .match-row.selected {
+    display: block !important;
+    background: #fffbe6 !important;
+    color: #111 !important;
+    border: none !important;
+    border-bottom: 1px solid #eee !important;
+    padding: 1px 4px !important;
+    border-radius: 0 !important;
+    min-height: 0 !important;
+    font-size: 9px !important;
+  }
+  .match-row.selected .flag { display: none !important; }
+  .match-row.selected .match-row-label { color: #111 !important; }
+
+  .standings { font-size: 9px !important; margin-top: 4px !important; }
+  .standings th, .standings td {
+    padding: 1px 2px !important; border-bottom: 1px solid #ccc !important;
+    color: #111 !important;
+  }
+  .standings th { color: #555 !important; }
+  .standings tr.standings-advance { color: #111 !important; font-weight: 700 !important; }
+  .flag {
+    border: 1px solid #ccc !important;
+    width: 14px !important; height: 10px !important;
+  }
+
+  /* Third-place — tiny pill list */
+  #thirds-container .thirds-help { display: none !important; }
+  .thirds-list {
+    display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 4px !important;
+  }
+  .third-pill {
+    background: #fff !important; color: #111 !important;
+    border: 1px solid #999 !important; padding: 3px 5px !important;
+    font-size: 10px !important; min-height: 0 !important;
+  }
+  .third-pill:not(.selected) { display: none !important; }
+  .third-pill.selected { background: #fffbe6 !important; border-color: #b8860b !important; color: #111 !important; }
+  .third-pill .third-grp { color: #555 !important; }
+
+  /* Knockout — compact stacked layout */
+  #r32-container { grid-template-columns: repeat(4, 1fr) !important; gap: 4px !important; }
+  #r16-container { grid-template-columns: repeat(4, 1fr) !important; gap: 4px !important; }
+  #qf-container  { grid-template-columns: repeat(4, 1fr) !important; gap: 4px !important; }
+  #sf-container  { grid-template-columns: repeat(2, 1fr) !important; gap: 4px !important; }
+  #final-container { grid-template-columns: repeat(2, 1fr) !important; gap: 4px !important; }
+
+  .ko-match {
+    background: #fff !important; border: 1px solid #999 !important;
+    padding: 3px !important; gap: 2px !important;
+    page-break-inside: avoid;
+  }
+  .ko-id { color: #555 !important; font-size: 9px !important; }
+  .ko-id-final { color: #b8860b !important; font-size: 11px !important; }
+  .ko-id-third { color: #b8860b !important; font-size: 10px !important; }
+  .ko-match-final { border-color: #b8860b !important; box-shadow: none !important; }
+  .ko-row {
+    background: #fff !important; color: #111 !important;
+    border: 1px solid #ccc !important; padding: 2px 4px !important;
+    font-size: 10px !important; min-height: 0 !important;
+  }
+  .ko-row.selected { background: #fffbe6 !important; border-color: #b8860b !important; color: #111 !important; }
+  .ko-row.dim { display: none !important; }
+  .ko-row-empty { color: #888 !important; }
+
+  /* Champion */
+  #champion[hidden] { display: block !important; }
+  .champion-card {
+    background: #fffbe6 !important;
+    border: 2px solid #b8860b !important;
+    padding: 8px 12px !important;
+  }
+  .champion-flag { width: 60px !important; height: 40px !important; box-shadow: none !important; }
+  .champion-name { color: #111 !important; font-size: 16px !important; }
+  .champion-tag { color: #555 !important; }
+
+  a[href]::after { content: ''; }
+}

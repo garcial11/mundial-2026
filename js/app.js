@@ -540,7 +540,7 @@ MUNDIAL.app = (function () {
     container.appendChild(el('div', { class: 'champion-card' }, [
       el('img', { src: data.flagUrl(champ), alt: '', class: 'champion-flag' }),
       el('div', { class: 'champion-name' }, [teamLabel(champ)]),
-      el('div', { class: 'champion-tag' }, ['MUNDIAL 2026 CHAMPION'])
+      el('div', { class: 'champion-tag' }, ['WORLD CUP 2026 CHAMPION'])
     ]));
   }
 
@@ -565,6 +565,23 @@ MUNDIAL.app = (function () {
         renderAll();
       }
     });
+
+    // Name input — restored from localStorage so it survives reloads.
+    var nameInput = document.getElementById('name-input');
+    var savedName = '';
+    try { savedName = localStorage.getItem('mundial2026_name') || ''; } catch (e) { /* ignore */ }
+    if (savedName) nameInput.value = savedName;
+    nameInput.addEventListener('input', function () {
+      try { localStorage.setItem('mundial2026_name', nameInput.value); } catch (e) { /* ignore */ }
+    });
+
+    document.getElementById('download-csv-btn').addEventListener('click', function () {
+      MUNDIAL.export.downloadCSV(current, nameInput.value.trim());
+    });
+    document.getElementById('download-pdf-btn').addEventListener('click', function () {
+      MUNDIAL.export.downloadPDF(nameInput.value.trim());
+    });
+
     renderAll();
   }
 

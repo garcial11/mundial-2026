@@ -3,15 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Mundial 2026 — Your Bracket</title>
+  <title>World Cup Picks · 2026</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%BD%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <header class="hero">
-    <h1>MUNDIAL 2026</h1>
-    <p class="subtitle">YOUR BRACKET</p>
-    <button id="reset-btn" class="btn-secondary" type="button">Reset bracket</button>
+    <h1>WORLD CUP PICKS</h1>
+    <p class="subtitle">· 2026 ·</p>
+    <div class="hero-controls">
+      <input id="name-input" class="name-input" type="text" autocomplete="name" placeholder="Your name" maxlength="60">
+      <button id="download-csv-btn" class="btn-secondary" type="button">Download CSV</button>
+      <button id="download-pdf-btn" class="btn-secondary" type="button">Download PDF</button>
+      <button id="reset-btn" class="btn-secondary" type="button">Reset bracket</button>
+    </div>
   </header>
 
   <nav class="sticky-nav" aria-label="Sections">
@@ -57,6 +62,7 @@
   <script src="js/state.js"></script>
   <script src="js/standings.js"></script>
   <script src="js/bracket.js"></script>
+  <script src="js/export.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

@@ -437,7 +437,9 @@ function colNum2A1(n) {
 // Sign up at football-data.org/client/register; paste the key on first use.
 
 var API_BASE = 'https://api.football-data.org/v4';
-var COMPETITION_CODE = 'WC';
+// football-data.org sometimes addresses competitions by code ('WC') and
+// sometimes by numeric ID ('2000'). Try them in order; first that works wins.
+var COMPETITION_IDS = ['WC', '2000'];
 
 // Mapping from API team-name spellings to the names used in our Master labels.
 // Most match exactly; only override the differences.
@@ -495,12 +497,30 @@ function pullLatestResults() {
     return;
   }
 
-  // 1. Matches
-  var matchesData;
-  try {
-    matchesData = apiCall('/competitions/' + COMPETITION_CODE + '/matches', apiKey);
-  } catch (e) {
-    ui.alert('API error', String(e.message || e), ui.ButtonSet.OK);
+  // 1. Matches — try each competition identifier; first that works wins.
+  var matchesData = null;
+  var lastError = null;
+  var workingId = null;
+  for (var idx = 0; idx < COMPETITION_IDS.length; idx++) {
+    try {
+      matchesData = apiCall('/competitions/' + COMPETITION_IDS[idx] + '/matches', apiKey);
+      workingId = COMPETITION_IDS[idx];
+      break;
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  if (!matchesData) {
+    ui.alert('API error',
+      'Could not reach football-data.org. Tried competition IDs: ' + COMPETITION_IDS.join(', ') + '.\n\n' +
+      'Last error:\n' + String(lastError && lastError.message || lastError) + '\n\n' +
+      'Common causes:\n' +
+      '  • Account not yet activated (check email at football-data.org)\n' +
+      '  • Free tier doesn\'t include World Cup right now (try standings only)\n' +
+      '  • API key typo (use "Clear API key" then retry)\n' +
+      '  • Apps Script needs URL-fetch authorization (run pullLatestResults\n' +
+      '    once from the Apps Script editor and accept the prompt)',
+      ui.ButtonSet.OK);
     return;
   }
   var matches = matchesData.matches || [];
@@ -566,7 +586,7 @@ function pullLatestResults() {
   // 4. Group standings (1st / 2nd / 3rd / 4th)
   var standingsUpdates = 0;
   try {
-    var standingsData = apiCall('/competitions/' + COMPETITION_CODE + '/standings', apiKey);
+    var standingsData = apiCall('/competitions/' + workingId + '/standings', apiKey);
     (standingsData.standings || []).forEach(function (s) {
       if (s.type !== 'TOTAL') return;
       var groupLetter = s.group ? String(s.group).replace('GROUP_', '') : null;

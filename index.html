@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>World Cup Picks · 2026</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%BD%3C/text%3E%3C/svg%3E">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=20260503">
 </head>
 <body>
   <header class="hero">
@@ -13,8 +13,8 @@
     <p class="subtitle">· 2026 ·</p>
     <div class="hero-controls">
       <input id="name-input" class="name-input" type="text" autocomplete="name" placeholder="Your name" maxlength="60">
-      <button id="download-csv-btn" class="btn-secondary" type="button">Download CSV</button>
-      <button id="download-pdf-btn" class="btn-secondary" type="button">Download PDF</button>
+      <button class="btn-secondary download-csv-btn" type="button">Download CSV</button>
+      <button class="btn-secondary download-pdf-btn" type="button">Download PDF</button>
       <button id="reset-btn" class="btn-secondary" type="button">Reset bracket</button>
     </div>
   </header>
@@ -51,18 +51,26 @@
       <h2 id="champion-h">Champion</h2>
       <div id="champion-container"></div>
     </section>
+
+    <div class="bottom-actions">
+      <p class="bottom-actions-hint">Done? Send your bracket:</p>
+      <div class="bottom-actions-buttons">
+        <button class="btn-secondary download-csv-btn" type="button">Download CSV</button>
+        <button class="btn-secondary download-pdf-btn" type="button">Download PDF</button>
+      </div>
+    </div>
   </main>
 
   <div id="storage-warning" hidden class="banner">
     Picks won't be saved — enable browser storage to persist your bracket.
   </div>
 
-  <script src="js/dom.js"></script>
-  <script src="js/data.js"></script>
-  <script src="js/state.js"></script>
-  <script src="js/standings.js"></script>
-  <script src="js/bracket.js"></script>
-  <script src="js/export.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/dom.js?v=20260503"></script>
+  <script src="js/data.js?v=20260503"></script>
+  <script src="js/state.js?v=20260503"></script>
+  <script src="js/standings.js?v=20260503"></script>
+  <script src="js/bracket.js?v=20260503"></script>
+  <script src="js/export.js?v=20260503"></script>
+  <script src="js/app.js?v=20260503"></script>
 </body>
 </html>

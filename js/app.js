@@ -577,11 +577,17 @@ MUNDIAL.app = (function () {
       try { localStorage.setItem('mundial2026_name', nameInput.value); } catch (e) { /* ignore */ }
     });
 
-    document.getElementById('download-csv-btn').addEventListener('click', function () {
-      MUNDIAL.export.downloadCSV(current, nameInput.value.trim());
+    // Both the top (hero) and bottom buttons share these class names so a
+    // single listener wiring covers both copies.
+    document.querySelectorAll('.download-csv-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        MUNDIAL.export.downloadCSV(current, nameInput.value.trim());
+      });
     });
-    document.getElementById('download-pdf-btn').addEventListener('click', function () {
-      MUNDIAL.export.downloadPDF(nameInput.value.trim());
+    document.querySelectorAll('.download-pdf-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        MUNDIAL.export.downloadPDF(nameInput.value.trim());
+      });
     });
 
     renderAll();

@@ -113,6 +113,23 @@ section.locked .lock-note { color: var(--text-dim); font-style: italic; }
 
 .print-only { display: none; }
 
+.bottom-actions {
+  margin-top: 32px;
+  padding: 20px 16px 32px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+.bottom-actions-hint {
+  margin: 0 0 12px;
+  color: var(--text-dim);
+  font-size: 13px;
+  letter-spacing: 0.05em;
+}
+.bottom-actions-buttons {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  justify-content: center;
+}
+
 .banner {
   position: fixed;
   bottom: 16px; left: 16px; right: 16px;
@@ -310,9 +327,10 @@ section.locked .lock-note { color: var(--text-dim); font-style: italic; }
   .sticky-nav,
   .hero-controls,
   #reset-btn,
-  #download-csv-btn,
-  #download-pdf-btn,
+  .download-csv-btn,
+  .download-pdf-btn,
   .name-input,
+  .bottom-actions,
   .tiebreaker,
   .lock-note,
   .banner,

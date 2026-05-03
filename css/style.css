@@ -289,10 +289,20 @@ section.locked .lock-note { color: var(--text-dim); font-style: italic; }
 
 /* ======================== PRINT STYLES (PDF EXPORT) ======================== */
 @media print {
-  @page { size: A4; margin: 12mm; }
+  /* Let the user's selected paper size win (A4 in EU, Letter in US).
+     Tight margins so the bracket gets all the room it needs. */
+  @page { margin: 8mm; }
 
-  html, body { background: #fff !important; color: #111 !important; }
+  html, body {
+    background: #fff !important;
+    color: #111 !important;
+    width: 100% !important;
+  }
   body { font-size: 11px; }
+  main { width: 100% !important; max-width: none !important; padding: 0 !important; }
+  /* Grid items ignore content min-size by default and that's what makes the
+     right column overflow. Force them to be allowed to shrink. */
+  * { min-width: 0 !important; }
 
   .print-only { display: block !important; }
 
@@ -330,17 +340,20 @@ section.locked .lock-note { color: var(--text-dim); font-style: italic; }
     letter-spacing: 0.05em;
   }
 
-  /* Group cards: 4 columns on print, compact */
+  /* Group cards: 4 columns on print, compact. min-width:0 above lets them
+     actually shrink to fit; long team names wrap inside the column. */
   #groups-container {
     display: grid !important;
-    grid-template-columns: repeat(4, 1fr) !important;
-    gap: 6px !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+    width: 100% !important;
   }
   .group-card {
     background: #fff !important;
     border: 1px solid #999 !important;
-    padding: 4px 6px !important;
+    padding: 3px 5px !important;
     page-break-inside: avoid;
+    overflow-wrap: anywhere;
   }
   .group-card h3 {
     color: #111 !important; font-size: 11px !important; margin: 0 0 2px !important;
@@ -409,11 +422,12 @@ section.locked .lock-note { color: var(--text-dim); font-style: italic; }
   .third-pill .third-grp { color: #555 !important; }
 
   /* Knockout — compact stacked layout */
-  #r32-container { grid-template-columns: repeat(4, 1fr) !important; gap: 4px !important; }
-  #r16-container { grid-template-columns: repeat(4, 1fr) !important; gap: 4px !important; }
-  #qf-container  { grid-template-columns: repeat(4, 1fr) !important; gap: 4px !important; }
-  #sf-container  { grid-template-columns: repeat(2, 1fr) !important; gap: 4px !important; }
-  #final-container { grid-template-columns: repeat(2, 1fr) !important; gap: 4px !important; }
+  #r32-container { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 4px !important; }
+  #r16-container { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 4px !important; }
+  #qf-container  { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 4px !important; }
+  #sf-container  { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 4px !important; }
+  #final-container { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 4px !important; }
+  .thirds-list { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
 
   .ko-match {
     background: #fff !important; border: 1px solid #999 !important;

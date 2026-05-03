@@ -627,6 +627,49 @@ function clearApiKey() {
   }
 }
 
+/**
+ * Diagnostic — run this from the Apps Script editor (select function from
+ * the dropdown, click ▶ Run). Logs go to the execution log at the bottom.
+ *
+ * Tries multiple endpoints and prints status, headers, and the first chunk
+ * of each response so we can see exactly why the API call fails.
+ */
+function testApiConnection() {
+  var apiKey = PropertiesService.getScriptProperties().getProperty('FOOTBALL_DATA_API_KEY');
+  if (!apiKey) {
+    Logger.log('NO API KEY STORED. Run "Pull latest results" from the Sheet menu once to save your key, then come back and run this test.');
+    return;
+  }
+  Logger.log('API key (first 6 chars): ' + apiKey.substring(0, 6) + '... (length=' + apiKey.length + ')');
+
+  var endpoints = [
+    'https://api.football-data.org/v4/competitions',          // Lists every competition you have access to
+    'https://api.football-data.org/v4/competitions/WC',       // World Cup metadata
+    'https://api.football-data.org/v4/competitions/2000',     // World Cup by numeric ID
+    'https://api.football-data.org/v4/competitions/WC/matches',
+    'https://api.football-data.org/v4/competitions/2000/matches'
+  ];
+
+  endpoints.forEach(function (url) {
+    Logger.log('--- GET ' + url);
+    try {
+      var resp = UrlFetchApp.fetch(url, {
+        method: 'get',
+        headers: { 'X-Auth-Token': apiKey },
+        muteHttpExceptions: true
+      });
+      var code = resp.getResponseCode();
+      var body = resp.getContentText();
+      Logger.log('HTTP ' + code);
+      Logger.log('  body (first 400 chars): ' + body.substring(0, 400));
+    } catch (e) {
+      Logger.log('FETCH THREW: ' + (e && e.message ? e.message : e));
+    }
+  });
+
+  Logger.log('--- Done. Look for HTTP 200 above; that\'s the endpoint that works.');
+}
+
 // ---- Helpers used by pullLatestResults ----
 
 function apiCall(path, apiKey) {

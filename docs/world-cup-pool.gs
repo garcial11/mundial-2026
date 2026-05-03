@@ -56,8 +56,11 @@ var MAX_PARTICIPANTS = 25;
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('World Cup Pool')
-    .addItem('Set up sheet (run once)',  'setUp')
-    .addItem('Add participant',          'addParticipant')
+    .addItem('Set up sheet (run once)',     'setUp')
+    .addItem('Add participant',             'addParticipant')
+    .addSeparator()
+    .addItem('Pull latest results from API','pullLatestResults')
+    .addItem('Clear API key',               'clearApiKey')
     .addToUi();
 }
 
@@ -419,4 +422,248 @@ function colNum2A1(n) {
     n = Math.floor((n - 1) / 26);
   }
   return s;
+}
+
+// =========================================================================
+// 8. Pull latest results from football-data.org
+// =========================================================================
+//
+// Fetches the World Cup competition data and updates Master with:
+//   • Group match outcomes ("Mexico wins" / "Draw" / "South Africa wins")
+//   • Group standings (1st / 2nd / 3rd / 4th of each group)
+//   • Knockout team lists (R32 / R16 / QF / SF / Finalists / Champion)
+//
+// API: https://www.football-data.org — free tier covers the World Cup.
+// Sign up at football-data.org/client/register; paste the key on first use.
+
+var API_BASE = 'https://api.football-data.org/v4';
+var COMPETITION_CODE = 'WC';
+
+// Mapping from API team-name spellings to the names used in our Master labels.
+// Most match exactly; only override the differences.
+var TEAM_NAME_ALIASES = {
+  'USA':                              'United States',
+  'United States of America':         'United States',
+  'Korea Republic':                   'South Korea',
+  'Republic of Korea':                'South Korea',
+  'Korea, South':                     'South Korea',
+  'Cote d\'Ivoire':                   'Ivory Coast',
+  'Côte d\'Ivoire':              'Ivory Coast',
+  'Czech Republic':                   'Czechia',
+  'Turkey':                           'Türkiye',
+  'Türkiye':                     'Türkiye',
+  'Cape Verde Islands':               'Cape Verde',
+  'Bosnia-Herzegovina':               'Bosnia and Herzegovina',
+  'Congo DR':                         'DR Congo',
+  'Democratic Republic of the Congo': 'DR Congo'
+};
+
+// API stage labels → Master section "Actual <Round> team" label.
+// (Knockout team lists are populated as soon as a round's matches are scheduled.)
+var STAGE_TO_SECTION = {
+  'PLAY_OFF_ROUND':   'Actual R32 team',
+  'PLAY_OFFS':        'Actual R32 team',
+  'ROUND_OF_32':      'Actual R32 team',
+  'LAST_32':          'Actual R32 team',
+  'ROUND_OF_16':      'Actual R16 team',
+  'LAST_16':          'Actual R16 team',
+  'QUARTER_FINALS':   'Actual QF team',
+  'SEMI_FINALS':      'Actual SF team',
+  'FINAL':            'Actual Finalist'
+};
+
+function pullLatestResults() {
+  var ui = SpreadsheetApp.getUi();
+  var props = PropertiesService.getScriptProperties();
+  var apiKey = props.getProperty('FOOTBALL_DATA_API_KEY');
+
+  if (!apiKey) {
+    var resp = ui.prompt('football-data.org API key',
+      'Paste your free API key (one-time setup; it gets stored in this script\'s properties).\n\n' +
+      'Don\'t have one? Sign up at:\nhttps://www.football-data.org/client/register',
+      ui.ButtonSet.OK_CANCEL);
+    if (resp.getSelectedButton() !== ui.Button.OK) return;
+    apiKey = resp.getResponseText().trim();
+    if (!apiKey) return;
+    props.setProperty('FOOTBALL_DATA_API_KEY', apiKey);
+  }
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var master = ss.getSheetByName('Master');
+  if (!master) {
+    ui.alert('No Master tab found. Run "Set up sheet" first.');
+    return;
+  }
+
+  // 1. Matches
+  var matchesData;
+  try {
+    matchesData = apiCall('/competitions/' + COMPETITION_CODE + '/matches', apiKey);
+  } catch (e) {
+    ui.alert('API error', String(e.message || e), ui.ButtonSet.OK);
+    return;
+  }
+  var matches = matchesData.matches || [];
+
+  // Cache Master labels in a single read.
+  var lastRow = master.getLastRow();
+  var labelValues = master.getRange(2, 1, lastRow - 1, 1).getValues();
+
+  var groupUpdates = 0;
+  var skipped = [];
+  var stageTeams = {}; // stage → { teamName: true }
+
+  matches.forEach(function (m) {
+    var stage = m.stage;
+    var home = m.homeTeam ? normalizeTeamName(m.homeTeam.name) : null;
+    var away = m.awayTeam ? normalizeTeamName(m.awayTeam.name) : null;
+    if (!home || !away) {
+      skipped.push((m.homeTeam && m.homeTeam.name) + ' vs ' + (m.awayTeam && m.awayTeam.name) + ' [' + stage + ']');
+      return;
+    }
+
+    if (stage && stage !== 'GROUP_STAGE') {
+      stageTeams[stage] = stageTeams[stage] || {};
+      stageTeams[stage][home] = true;
+      stageTeams[stage][away] = true;
+    }
+
+    if (stage === 'GROUP_STAGE' && m.status === 'FINISHED') {
+      var groupLetter = m.group ? String(m.group).replace('GROUP_', '') : null;
+      if (!groupLetter) return;
+
+      var winnerStr;
+      if (m.score && m.score.winner === 'DRAW') winnerStr = 'Draw';
+      else if (m.score && m.score.winner === 'HOME_TEAM') winnerStr = home + ' wins';
+      else if (m.score && m.score.winner === 'AWAY_TEAM') winnerStr = away + ' wins';
+      else return;
+
+      var labelA = 'Group ' + groupLetter + ' — ' + home + ' vs ' + away;
+      var labelB = 'Group ' + groupLetter + ' — ' + away + ' vs ' + home;
+      if (setLabelValue(master, labelValues, labelA, winnerStr) ||
+          setLabelValue(master, labelValues, labelB, winnerStr)) {
+        groupUpdates++;
+      }
+    }
+  });
+
+  // 2. Knockout team lists
+  Object.keys(stageTeams).forEach(function (stage) {
+    var section = STAGE_TO_SECTION[stage];
+    if (!section) return;
+    populateTeamSet(master, labelValues, section, Object.keys(stageTeams[stage]).sort());
+  });
+
+  // 3. Champion (only after Final FINISHED)
+  var finalMatch = matches.find(function (m) { return m.stage === 'FINAL'; });
+  if (finalMatch && finalMatch.status === 'FINISHED' && finalMatch.score) {
+    var champ = null;
+    if (finalMatch.score.winner === 'HOME_TEAM') champ = normalizeTeamName(finalMatch.homeTeam.name);
+    else if (finalMatch.score.winner === 'AWAY_TEAM') champ = normalizeTeamName(finalMatch.awayTeam.name);
+    if (champ) populateTeamSet(master, labelValues, 'Actual Champion', [champ]);
+  }
+
+  // 4. Group standings (1st / 2nd / 3rd / 4th)
+  var standingsUpdates = 0;
+  try {
+    var standingsData = apiCall('/competitions/' + COMPETITION_CODE + '/standings', apiKey);
+    (standingsData.standings || []).forEach(function (s) {
+      if (s.type !== 'TOTAL') return;
+      var groupLetter = s.group ? String(s.group).replace('GROUP_', '') : null;
+      if (!groupLetter) return;
+      var positions = ['1st place', '2nd place', '3rd place', '4th place'];
+      (s.table || []).forEach(function (row, i) {
+        if (i >= 4 || !row.team) return;
+        var team = normalizeTeamName(row.team.name);
+        if (!team) return;
+        var label = 'Group ' + groupLetter + ' — ' + positions[i];
+        if (setLabelValue(master, labelValues, label, team)) standingsUpdates++;
+      });
+    });
+  } catch (e) {
+    // Standings may not exist before any group game has been played; that's fine.
+  }
+
+  // Summary
+  var msg = 'Updated:\n' +
+    '  • ' + groupUpdates + ' group match outcome(s)\n' +
+    '  • ' + standingsUpdates + ' group standing slot(s)\n' +
+    '  • Knockout team lists for: ' + (Object.keys(stageTeams).join(', ') || 'none yet');
+  if (finalMatch && finalMatch.status === 'FINISHED') msg += '\n  • Champion set';
+  if (skipped.length) {
+    msg += '\n\nSkipped (team-name mismatch — let the developer know):\n' + skipped.slice(0, 8).join('\n');
+  }
+  ui.alert('Pull complete', msg, ui.ButtonSet.OK);
+}
+
+function clearApiKey() {
+  var ui = SpreadsheetApp.getUi();
+  var resp = ui.alert('Clear API key',
+    'This will remove the saved football-data.org API key. You\'ll be prompted to paste it again on the next pull. Continue?',
+    ui.ButtonSet.YES_NO);
+  if (resp === ui.Button.YES) {
+    PropertiesService.getScriptProperties().deleteProperty('FOOTBALL_DATA_API_KEY');
+    ui.alert('API key cleared.');
+  }
+}
+
+// ---- Helpers used by pullLatestResults ----
+
+function apiCall(path, apiKey) {
+  var resp = UrlFetchApp.fetch(API_BASE + path, {
+    method: 'get',
+    headers: { 'X-Auth-Token': apiKey },
+    muteHttpExceptions: true
+  });
+  var code = resp.getResponseCode();
+  if (code !== 200) {
+    throw new Error('HTTP ' + code + ' from football-data.org\n' + resp.getContentText().substring(0, 300));
+  }
+  return JSON.parse(resp.getContentText());
+}
+
+function normalizeTeamName(apiName) {
+  if (!apiName) return null;
+  if (TEAM_NAME_ALIASES[apiName]) return TEAM_NAME_ALIASES[apiName];
+  // Exact match against our team list.
+  for (var i = 0; i < ALL_TEAM_NAMES.length; i++) {
+    if (ALL_TEAM_NAMES[i] === apiName) return ALL_TEAM_NAMES[i];
+  }
+  // Case-insensitive fallback.
+  var lower = String(apiName).toLowerCase();
+  for (var j = 0; j < ALL_TEAM_NAMES.length; j++) {
+    if (ALL_TEAM_NAMES[j].toLowerCase() === lower) return ALL_TEAM_NAMES[j];
+  }
+  return null;
+}
+
+// Set Master col B for the row whose label matches `label`. Returns true if
+// changed (or first-time set), false if already had this value or label not found.
+function setLabelValue(master, labelValues, label, value) {
+  for (var i = 0; i < labelValues.length; i++) {
+    if (labelValues[i][0] === label) {
+      var cell = master.getRange(i + 2, 2);
+      var existing = cell.getValue();
+      if (existing !== value) {
+        cell.setValue(value);
+        return true;
+      }
+      return false;
+    }
+  }
+  return false;
+}
+
+// Populate all rows in Master that share `label` with the given team list,
+// in order. Trims/extends as needed.
+function populateTeamSet(master, labelValues, label, teams) {
+  var matchingRows = [];
+  for (var i = 0; i < labelValues.length; i++) {
+    if (labelValues[i][0] === label) matchingRows.push(i + 2);
+  }
+  for (var j = 0; j < matchingRows.length; j++) {
+    var newVal = j < teams.length ? teams[j] : '';
+    var cell = master.getRange(matchingRows[j], 2);
+    if (cell.getValue() !== newVal) cell.setValue(newVal);
+  }
 }
